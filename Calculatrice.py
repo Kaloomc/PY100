@@ -42,8 +42,9 @@ def operation(op):
     global X
     global Y
     global currentOperation
-    Y = float(X)
-    X = "0"
+    if(X != "0"):
+        Y = float(X)
+        X = "0"
     currentOperation = op
     
 def pourcent():
