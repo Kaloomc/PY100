@@ -65,6 +65,7 @@ def GetTemp(longitude, latitude):
         "latitude": latitude,
         "longitude": longitude,
         "hourly": "temperature_2m",
+        "daily": ["sunrise", "sunset"],
         "timezone": "auto",
         "forecast_days": 7
     }
@@ -102,6 +103,23 @@ def GetTemp(longitude, latitude):
 
     # Accéder à la ligne correspondant à cette date/heure
     temp_values = hourly_dataframe[hourly_dataframe['date'] == specific_time]['temperature_2m']
+
+    daily = response.Daily()
+    daily_sunrise = daily.Variables(0).ValuesAsNumpy()
+    daily_sunset = daily.Variables(1).ValuesAsNumpy()
+
+    daily_data = {"date": pd.date_range(
+	start = pd.to_datetime(daily.Time(), unit = "s", utc = True),
+	end = pd.to_datetime(daily.TimeEnd(), unit = "s", utc = True),
+	freq = pd.Timedelta(seconds = daily.Interval()),
+	inclusive = "left"
+    )}
+    daily_data["sunrise"] = daily_sunrise
+    daily_data["sunset"] = daily_sunset
+
+    daily_dataframe = pd.DataFrame(data = daily_data)
+
+    print(daily_dataframe)
 
     if not temp_values.empty:  # Vérifiez si temp_values n'est pas vide
         temperature_at_specific_time = temp_values.values[0]
