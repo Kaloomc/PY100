@@ -1,42 +1,60 @@
-import openmeteo_requests
-
-import requests_cache
-import pandas as pd
-from retry_requests import retry
-
-# Setup the Open-Meteo API client with cache and retry on error
-cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-openmeteo = openmeteo_requests.Client(session = retry_session)
-
-# Make sure all required weather variables are listed here
-# The order of variables in hourly or daily is important to assign them correctly below
-url = "https://api.open-meteo.com/v1/forecast"
-params = {
-	"latitude": 50.7239,
-	"longitude": 3.1612,
-	"daily": ["sunrise", "sunset"]
-}
-responses = openmeteo.weather_api(url, params=params)
-
-# Process first location. Add a for-loop for multiple locations or weather models
-response = responses[0]
-# Process daily data. The order of variables needs to be the same as requested.
-daily = response.Daily()
-print(daily("sunset"))
-daily_sunrise = daily.Variables(0).ValuesAsNumpy()
-daily_sunset = daily.Variables(1).ValuesAsNumpy()
+import requests
+import csv
+# Définir la latitude et la longitude
 
 
 
-daily_data = {"date": pd.date_range(
-	start = pd.to_datetime(daily.Time(), unit = "s", utc = True),
-	end = pd.to_datetime(daily.TimeEnd(), unit = "s", utc = True),
-	freq = pd.Timedelta(seconds = daily.Interval()),
-	inclusive = "left"
-)}
-daily_data["sunrise"] = daily_sunrise
-daily_data["sunset"] = daily_sunset
+def currentWeather(latitude,longitude):
 
-daily_dataframe = pd.DataFrame(data = daily_data)
-print(daily_dataframe.loc[0])
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,is_day,precipitation,rain,snowfall,cloud_cover"
+    response = requests.get(url)
+    data = response.json()
+    return data
+
+def GetCoord(name):
+	
+    longitude = 0
+    latitude = 0
+        
+    filename = "CityGPS.csv"
+
+    # Vérifier si la ville existe déjà dans le fichier CSV
+    ville_exists = False
+
+    with open(filename, mode='r', newline='') as file:
+        reader = csv.reader(file)
+        next(reader)  # Sauter l'en-tête
+        for row in reader:
+            if row[0].lower() == name.lower():  # Comparer les noms de villes en ignorant la casse
+                ville_exists = True
+                latitude = row[1]
+                longitude = row[2]
+                break
+
+    if not ville_exists:
+        # Ouvrir le fichier en mode append (ajout)
+        with open(filename, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            # Ajouter l'en-tête si le fichier n'existe pas
+            if file.tell() == 0:  # file.tell() renvoie 0 si le fichier est vide
+                writer.writerow(["Ville", "Latitude", "Longitude"])
+                
+            # Écrire les données de la ville
+            api_url = 'https://api.api-ninjas.com/v1/city?name={}'.format(name)
+            response = requests.get(api_url, headers={'X-Api-Key': 'KjQis/qNBqiaUaKxJizU2A==s6cqc3493DhIjwM0'})
+            if response.status_code == requests.codes.ok:
+                data = response.json()
+                if data:  # Vérifiez si des données ont été renvoyées
+                    longitude = data[0]["longitude"]
+                    latitude = data[0]["latitude"]
+                    ville_data = [name, latitude, longitude]
+                    writer.writerow(ville_data)
+                else:
+                    print(f"Aucune donnée trouvée pour la ville {name}.")
+                    return None  # Sortir si aucune donnée n'est trouvée
+            else:
+                print("Erreur lors de l'appel à l'API:", response.status_code, response.text)
+                return None  # Sortir en cas d'erreur API
+    return latitude,longitude
+
+
