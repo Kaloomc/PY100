@@ -64,7 +64,14 @@ drop_down_menu.config(
     pady=10)
     
 
-drop_down_menu["menu"].config(bg="Lightblue", fg="black")
+drop_down_menu["menu"].config(bg="lightblue",
+    fg="white",
+    activebackground="Lightblue",
+    activeforeground="white",
+    
+    
+    font=("Helvetica", 40, "bold"),
+    border=0)
 drop_down_menu.grid(column=0,row=0)
 
 
